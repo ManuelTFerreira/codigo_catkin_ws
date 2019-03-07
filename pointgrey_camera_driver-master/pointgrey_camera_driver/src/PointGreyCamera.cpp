@@ -104,6 +104,12 @@ bool PointGreyCamera::setNewConfiguration(pointgrey_camera_driver::PointGreyConf
   // Set exposure
   retVal &= PointGreyCamera::setProperty(AUTO_EXPOSURE, config.auto_exposure, config.exposure);
 
+  // Set sharpness
+  retVal &= PointGreyCamera::setProperty(SHARPNESS, config.auto_sharpness, config.sharpness);
+
+  // Set saturation
+  retVal &= PointGreyCamera::setProperty(SATURATION, config.auto_saturation, config.saturation);
+
   // Set shutter time
   double shutter = 1000.0 * config.shutter_speed; // Needs to be in milliseconds
   retVal &= PointGreyCamera::setProperty(SHUTTER, config.auto_shutter, shutter);
@@ -165,8 +171,8 @@ bool PointGreyCamera::setNewConfiguration(pointgrey_camera_driver::PointGreyConf
     default:
       retVal &= false;
   }
-	
-	
+
+
   switch (config.strobe2_polarity)
   {
     case pointgrey_camera_driver::PointGrey_Low:
@@ -429,6 +435,9 @@ bool PointGreyCamera::getFormat7PixelFormatFromString(std::string &sformat, FlyC
     else if(sformat.compare("mono16") == 0)
     {
       fmt7PixFmt = PIXEL_FORMAT_MONO16;
+    }
+    else if(sformat.compare("rgb8") == 0){
+      fmt7PixFmt = PIXEL_FORMAT_RGB;
     }
     else
     {
@@ -887,12 +896,10 @@ void PointGreyCamera::connect()
     if (ifType == FlyCapture2::INTERFACE_GIGE)
     {
 		// Set packet size:
-        if (auto_packet_size_){
-            //setupGigEPacketSize(guid);
-        }
-        else{
+        if (auto_packet_size_)
+            setupGigEPacketSize(guid);
+        else
             setupGigEPacketSize(guid, packet_size_);
-        }
 
         // Set packet delay:
         setupGigEPacketDelay(guid, packet_delay_);
@@ -906,8 +913,8 @@ void PointGreyCamera::connect()
         error = cam.GetGigEConfig(&gigeconfig);
         PointGreyCamera::handleError("PointGreyCamera::GetGigEConfig could not get GigE setting", error);
         gigeconfig.enablePacketResend = true;
-//        error = cam.SetGigEConfig(&gigeconfig);
-//        PointGreyCamera::handleError("PointGreyCamera::SetGigEConfig could not set GigE settings (packet resend)", error);
+        error = cam.SetGigEConfig(&gigeconfig);
+        PointGreyCamera::handleError("PointGreyCamera::SetGigEConfig could not set GigE settings (packet resend)", error);
     }
 
     error = cam_.Connect(&guid);
@@ -1036,6 +1043,10 @@ void PointGreyCamera::grabImage(sensor_msgs::Image &image, const std::string &fr
       if(bitsPerPixel == 16)
       {
         imageEncoding = sensor_msgs::image_encodings::MONO16;
+      }
+      else if(bitsPerPixel==24)
+      {
+        imageEncoding = sensor_msgs::image_encodings::RGB8;
       }
       else
       {
@@ -1204,6 +1215,10 @@ void PointGreyCamera::handleError(const std::string &prefix, const FlyCapture2::
   if(error == PGRERROR_TIMEOUT)
   {
     throw CameraTimeoutException("PointGreyCamera: Failed to retrieve buffer within timeout.");
+  }
+  else if(error == PGRERROR_IMAGE_CONSISTENCY_ERROR)
+  {
+    throw CameraImageConsistencyError("PointGreyCamera: Image consistency error.");
   }
   else if(error != PGRERROR_OK)     // If there is actually an error (PGRERROR_OK means the function worked as intended...)
   {

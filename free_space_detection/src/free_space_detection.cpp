@@ -1,28 +1,31 @@
 /**************************************************************************************************
    Software License Agreement (BSD License)
 
-   Copyright (c) 2014-2015, LAR toolkit developers - University of Aveiro - http://lars.mec.ua.pt
-   All rights reserved.
+   Copyright (c) 2014-2015, LAR toolkit developers - University of Aveiro -
+ http://lars.mec.ua.pt All rights reserved.
 
-   Redistribution and use in source and binary forms, with or without modification, are permitted
-   provided that the following conditions are met:
+   Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
 
- * Redistributions of source code must retain the above copyright notice, this list of
-   conditions and the following disclaimer.
- * Redistributions in binary form must reproduce the above copyright notice, this list of
-   conditions and the following disclaimer in the documentation and/or other materials provided
-   with the distribution.
- * Neither the name of the University of Aveiro nor the names of its contributors may be used to
-   endorse or promote products derived from this software without specific prior written permission.
+ * Redistributions of source code must retain the above copyright notice, this
+ list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright notice,
+ this list of conditions and the following disclaimer in the documentation
+ and/or other materials provided with the distribution.
+ * Neither the name of the University of Aveiro nor the names of its
+ contributors may be used to endorse or promote products derived from this
+ software without specific prior written permission.
 
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
-   IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-   FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-   CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-   IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
-   OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************************************************************************************************/
 /**
    \file  free_space_detection.cpp
@@ -72,10 +75,12 @@ public:
     this->topicName = topicName;
     this->frameId = frame_id;
     /*----Susbcribe LaserData Topic----*/
-    sub = n.subscribe(topicName, 1000, &laserDataAnalise::laserDataTreatment, this);
+    sub = n.subscribe(topicName, 1000, &laserDataAnalise::laserDataTreatment,
+                      this);
     ROS_INFO("Topic %s subscribed!", topicName.c_str());
 
-    clustersPub = np.advertise<visualization_msgs::MarkerArray>("simple_clustering", 1000);
+    clustersPub = np.advertise<visualization_msgs::MarkerArray>(
+        "simple_clustering", 1000);
     pclPub = np.advertise<PCL2>(topicName + "_PCL", 1000);
     polygonPub = np.advertise<polygonS>(topicName + "_polygon", 1000);
 
@@ -89,7 +94,8 @@ public:
   @param[in] Angle between the scan plane and the horizontal plane
   @return void
   */
-  void convertToXYZ(sensor_msgs::LaserScan scan, vector<PointPtr> &points, double rot)
+  void convertToXYZ(sensor_msgs::LaserScan scan, vector<PointPtr> &points,
+                    double rot)
   {
     int s = scan.ranges.size();
 
@@ -117,11 +123,14 @@ public:
   }
 
   /**
-  @brief Creats visualization markers to display the clusters resultant from the laser scan
+  @brief Creats visualization markers to display the clusters resultant from the
+  laser scan
   @param[in] Array of clusters
-  @return vector<visualization_msgs::Marker> Array with the visualization markers
+  @return vector<visualization_msgs::Marker> Array with the visualization
+  markers
   */
-  vector<visualization_msgs::Marker> createClutersVisualizationMarker(vector<ClusterPtr> &clusters)
+  vector<visualization_msgs::Marker>
+  createClutersVisualizationMarker(vector<ClusterPtr> &clusters)
   {
     static Markers marker_list;
 
@@ -133,10 +142,10 @@ public:
     visualization_msgs::Marker marker_ids;
     visualization_msgs::Marker marker_clusters;
 
-    marker_ids.header.frame_id = frameId;  // topicName;
+    marker_ids.header.frame_id = frameId; // topicName;
     marker_ids.header.stamp = ros::Time::now();
 
-    marker_clusters.header.frame_id = frameId;  // topicName;
+    marker_clusters.header.frame_id = frameId; // topicName;
     marker_clusters.header.stamp = marker_ids.header.stamp;
 
     marker_ids.ns = "ids";
@@ -162,7 +171,7 @@ public:
     marker_ids.color.g = 0.0;
     marker_ids.color.b = 0.0;
 
-    for (uint i = 0; i < clusters.size(); i++)  // search all clusters
+    for (uint i = 0; i < clusters.size(); i++) // search all clusters
     {
       ClusterPtr cluster = clusters[i];
 
@@ -194,7 +203,7 @@ public:
 
       marker_list.update(marker_clusters);
 
-    }  // end for
+    } // end for
 
     // Remove markers that should not be transmitted
     marker_list.clean();
@@ -209,7 +218,8 @@ public:
   @param[in] Minimum points to keep the clusters
   @return vector<ClusterPtr> Array with the clusters after filtering
   */
-  vector<ClusterPtr> removeSmallClusters(vector<ClusterPtr> clusters, int minPoints)
+  vector<ClusterPtr> removeSmallClusters(vector<ClusterPtr> clusters,
+                                         int minPoints)
   {
     vector<ClusterPtr> cleanClusters;
     int count = 0;
@@ -235,7 +245,8 @@ public:
   void scanToPcl(sensor_msgs::LaserScan scan, pcl2Ptr pclOut)
   {
     laser_geometry::LaserProjection projector;
-    projector.transformLaserScanToPointCloud(scan.header.frame_id, scan, *pclOut, tf_Listener);
+    projector.transformLaserScanToPointCloud(scan.header.frame_id, scan,
+                                             *pclOut, tf_Listener);
   }
 
   /**
@@ -299,7 +310,7 @@ public:
       pointPcl = cloud.points.at(i);
       point.x = pointPcl.x;
       point.y = pointPcl.y;
-      point.z = 0;  // pointPcl.z;
+      point.z = 0; // pointPcl.z;
       polygon->polygon.points.push_back(point);
     }
 
@@ -326,7 +337,8 @@ public:
   }
 
   /**
-  @brief Gets the transformation between tow frames and applies it to the points of a point cloud
+  @brief Gets the transformation between tow frames and applies it to the points
+  of a point cloud
   @param[out] Point cloud pointer to assing the points
   @return bool Returns true if there if data in the scan point cloud
   */
@@ -341,7 +353,8 @@ public:
   }
 
   /**
-  @brief Gets the transformation between tow frames and applies it to the points of a point cloud
+  @brief Gets the transformation between tow frames and applies it to the points
+  of a point cloud
   @param[in] Destination frame
   @param[in] Point cloud to apply the transformation
   @param[out] Point cloud with the transformation applied
@@ -353,7 +366,8 @@ public:
     string oriFrame = frameId;
     try
     {
-      tf_Listener.waitForTransform(destFrame, oriFrame, ros::Time(0), ros::Duration(0.1));
+      tf_Listener.waitForTransform(destFrame, oriFrame, ros::Time(0),
+                                   ros::Duration(0.1));
       tf_Listener.lookupTransform(destFrame, oriFrame, ros::Time(0), transform);
     }
     catch (tf::TransformException ex)
@@ -398,7 +412,7 @@ private:
 
   pcl2Ptr scanPcl;
 };
-}
+} // namespace lidar_data_analise
 
 /**
 @brief Converts a point from cartezian coordinates to spheric coordinates
@@ -411,7 +425,8 @@ geometry_msgs::Point xyzTortp(geometry_msgs::Point point)
   double Y = point.y;
   double Z = point.z;
 
-  double radius = sqrt((double)(double)pow(X, 2) + (double)pow(Y, 2) + (double)pow(Z, 2));
+  double radius =
+      sqrt((double)(double)pow(X, 2) + (double)pow(Y, 2) + (double)pow(Z, 2));
   double theta = atan2(Y, X);
   double phi = acos((double)(Z / radius));
 
@@ -452,7 +467,8 @@ geometry_msgs::Point rtpToxyz(geometry_msgs::Point point)
 }
 
 /**
-@brief Sorting function used to sort the point cloud by the point's second element (the azimute angle)
+@brief Sorting function used to sort the point cloud by the point's second
+element (the azimute angle)
 @param[in] First point to compare
 @param[in] Second point to compare
 @return bool
@@ -488,7 +504,8 @@ void sortPcl(pclPtr in_pcl, pclPtr pclOut)
 
   //  cout << "Points sorted:" << endl;
   //  for(int i = 0; i<points_g.size();i++){
-  //    cout << points_g[i].x << ", " << points_g[i].y << ", " << points_g[i].z << endl;
+  //    cout << points_g[i].x << ", " << points_g[i].y << ", " << points_g[i].z
+  //    << endl;
   //  }
   //  cout << "END"<<endl;
 
@@ -605,7 +622,8 @@ void removeGround(pclPtr in_pcl, double angle, double distance)
 }
 
 /**
-@brief Creates an array with a specific number of points equaly spaced allong a minimum and a maximum
+@brief Creates an array with a specific number of points equaly spaced allong a
+minimum and a maximum
 @param[in] Array lowest value
 @param[in] Array upper value
 @param[in] Number of points of the array
@@ -636,7 +654,8 @@ vector<double> linspace(double min, double max, int n)
 @param[out] Point cloud sorted
 @return void
 */
-tf::Transform getTf(double x, double y, double z, double r, double p, double yy)
+tf::Transform getTf(double x, double y, double z, double r, double p,
+                    double yy)
 {
   tf::Transform t1;
   t1.setOrigin(tf::Vector3(x, y, z));
@@ -758,12 +777,14 @@ void euDistSort2(pclPtr in_pcl, pclPtr pclOut)
 }
 
 /**
-@brief Class containing functions to create and publish an ocupation grid from point cloud data
+@brief Class containing functions to create and publish an ocupation grid from
+point cloud data
 */
 class ocupGrid
 {
 public:
-  ocupGrid(string frameId, double xMin, double xMax, double yMin, double yMax, double cellResol)
+  ocupGrid(string frameId, double xMin, double xMax, double yMin, double yMax,
+           double cellResol)
   {
     this->cellResolution = cellResol;
     this->xMin = xMin;
@@ -782,7 +803,8 @@ public:
   }
 
   /**
-  @brief Assigns assign ocupation grid size acording to a point cloud extreme points
+  @brief Assigns assign ocupation grid size acording to a point cloud extreme
+  points
   @param[in] Ocupation point cloud
   @return void
   */
@@ -830,7 +852,8 @@ public:
   }
 
   /**
-  @brief Assigns values to the grid's cells according to the ocupation point cloud
+  @brief Assigns values to the grid's cells according to the ocupation point
+  cloud
   @param[in] Ocupation point cloud
   @param[in] Value to assign to the UNKWON cells
   @return void
@@ -841,7 +864,8 @@ public:
   }
 
   /**
-  @brief Assigns values to the grid's cells according to the ocupation point cloud
+  @brief Assigns values to the grid's cells according to the ocupation point
+  cloud
   @param[in] Ocupation point cloud
   @param[in] Value to assign to the UNKWON cells
   @param[in] x coordinate of origin of the point cloud
@@ -908,39 +932,28 @@ public:
   @brief Returns the ocupeation grid matrix
   @return vector<signed char>
   */
-  vector<signed char> getGrid()
-  {
-    return ocGrid;
-  }
+  vector<signed char> getGrid() { return ocGrid; }
 
   /**
   @brief Resets all the cells to a specific value
   @param[in] Value to assign to the cells
   @return void
   */
-  void resetGrid(int color)
-  {
-    ocGrid.assign(xCells * yCells, color);
-  }
+  void resetGrid(int color) { ocGrid.assign(xCells * yCells, color); }
 
   /**
-  @brief Assignes a matrix to the grid setting all the values and size equal to the matrix
+  @brief Assignes a matrix to the grid setting all the values and size equal to
+  the matrix
   @param[in] Pointer to the matrix
   @return void
   */
-  void assingGrid(vector<signed char> *grid)
-  {
-    ocGrid = *grid;
-  }
+  void assingGrid(vector<signed char> *grid) { ocGrid = *grid; }
 
   /**
   @brief Publishes the ocupation grid message
   @return void
   */
-  void publish()
-  {
-    gridPub.publish(*grid);
-  }
+  void publish() { gridPub.publish(*grid); }
 
   /**
   @brief Changes the value of a cell were a given points is in
@@ -997,7 +1010,8 @@ private:
 @param[in] Distance between points
 @return pcl::PointXYZ
 */
-pcl::PointXYZ createPointAllognLine(pcl::PointXYZ ini_point, pcl::PointXYZ last_point, double dist)
+pcl::PointXYZ createPointAllognLine(pcl::PointXYZ ini_point,
+                                    pcl::PointXYZ last_point, double dist)
 {
   double x1 = ini_point.x;
   double y1 = ini_point.y;
@@ -1087,16 +1101,18 @@ using namespace lidar_data_analise;
  */
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "free_space_detection");  // node "free_space_detection" initialization
+  ros::init(
+      argc, argv,
+      "free_space_detection"); // node "free_space_detection" initialization
 
-  Publisher polygonPub;       // publishers
-  Publisher uNavLPolygonPub;  // ""
-  Publisher uNavRPolygonPub;  // ""
-  Publisher mergedPclPub;     // ""
-  Publisher reducedPclPub;    // ""
-  Publisher uNavPclPub;       // ""
-  Publisher gridPub;          // ""
-  NodeHandle np;              // node "free_space_detection" access point
+  Publisher polygonPub;      // publishers
+  Publisher uNavLPolygonPub; // ""
+  Publisher uNavRPolygonPub; // ""
+  Publisher mergedPclPub;    // ""
+  Publisher reducedPclPub;   // ""
+  Publisher uNavPclPub;      // ""
+  Publisher gridPub;         // ""
+  NodeHandle np;             // node "free_space_detection" access point
 
   bool includeUnav = true;
   if (np.getParam("includeUnav", includeUnav))
@@ -1116,35 +1132,44 @@ int main(int argc, char **argv)
     ROS_INFO("Using Nav Area!");
   }
 
-  vector<boost::shared_ptr<laserDataAnalise> > laserDataHandle;  // vector laserDataHandle initialization
+  vector<boost::shared_ptr<laserDataAnalise>>
+      laserDataHandle; // vector laserDataHandle initialization
 
-  laserDataAnalise lms151DAnalise("/lms151_D_scan", "lms151_D");  // vector laserDataHandle assignment
-  laserDataHandle.push_back(boost::shared_ptr<laserDataAnalise>(&lms151DAnalise));
+  laserDataAnalise lms151DAnalise(
+      "/lms151_D_scan", "lms151_D"); // vector laserDataHandle assignment
+  laserDataHandle.push_back(
+      boost::shared_ptr<laserDataAnalise>(&lms151DAnalise));
   laserDataAnalise lms151EAnalise("/lms151_E_scan", "lms151_E");
-  laserDataHandle.push_back(boost::shared_ptr<laserDataAnalise>(&lms151EAnalise));
+  laserDataHandle.push_back(
+      boost::shared_ptr<laserDataAnalise>(&lms151EAnalise));
   laserDataAnalise ld_mrsAnalise1("/ld_rms/scan0", "/ldmrs0");
-  laserDataHandle.push_back(boost::shared_ptr<laserDataAnalise>(&ld_mrsAnalise1));
+  laserDataHandle.push_back(
+      boost::shared_ptr<laserDataAnalise>(&ld_mrsAnalise1));
   laserDataAnalise ld_mrsAnalise2("/ld_rms/scan1", "/ldmrs1");
-  laserDataHandle.push_back(boost::shared_ptr<laserDataAnalise>(&ld_mrsAnalise2));
+  laserDataHandle.push_back(
+      boost::shared_ptr<laserDataAnalise>(&ld_mrsAnalise2));
   laserDataAnalise ld_mrsAnalise3("/ld_rms/scan2", "/ldmrs2");
-  laserDataHandle.push_back(boost::shared_ptr<laserDataAnalise>(&ld_mrsAnalise3));
+  laserDataHandle.push_back(
+      boost::shared_ptr<laserDataAnalise>(&ld_mrsAnalise3));
   laserDataAnalise ld_mrsAnalise4("/ld_rms/scan3", "/ldmrs3");
-  laserDataHandle.push_back(boost::shared_ptr<laserDataAnalise>(&ld_mrsAnalise4));
+  laserDataHandle.push_back(
+      boost::shared_ptr<laserDataAnalise>(&ld_mrsAnalise4));
 
-  polygonPub = np.advertise<polygonS>("merged_polygon", 1000);             // topic names and message queue
-  uNavLPolygonPub = np.advertise<polygonS>("unavl_polygon", 1000);         // ""
-  uNavRPolygonPub = np.advertise<polygonS>("unavr_polygon", 1000);         // ""
-  mergedPclPub = np.advertise<PCL2>("merged_pcl", 1000);                   // ""
-  reducedPclPub = np.advertise<PCL2>("reduced_pcl", 1000);                 // ""
-  uNavPclPub = np.advertise<PCL2>("unav_pcl", 1000);                       // ""
-  gridPub = np.advertise<nav_msgs::OccupancyGrid>("ocupancy_grid", 1000);  // ""
+  polygonPub = np.advertise<polygonS>("merged_polygon",
+                                      1000);                              // topic names and message queue
+  uNavLPolygonPub = np.advertise<polygonS>("unavl_polygon", 1000);        // ""
+  uNavRPolygonPub = np.advertise<polygonS>("unavr_polygon", 1000);        // ""
+  mergedPclPub = np.advertise<PCL2>("merged_pcl", 1000);                  // ""
+  reducedPclPub = np.advertise<PCL2>("reduced_pcl", 1000);                // ""
+  uNavPclPub = np.advertise<PCL2>("unav_pcl", 1000);                      // ""
+  gridPub = np.advertise<nav_msgs::OccupancyGrid>("ocupancy_grid", 1000); // ""
 
-  vector<int> include;  // scans included
+  vector<int> include; // scans included
   include.assign(laserDataHandle.size(), 1);
   include[2] = 0;
   include[3] = 0;
   string includeScans;
-  if (np.getParam("IncludeScans", includeScans))  // give the scans used
+  if (np.getParam("IncludeScans", includeScans)) // give the scans used
   {
     if (includeScans.size() == include.size())
     {
@@ -1189,14 +1214,14 @@ int main(int argc, char **argv)
     ROS_INFO("Merging scans from: Sick LD-MRS 3!");
   }
 
-  vector<int> received;  // scans recieved
+  vector<int> received; // scans recieved
   received.assign(laserDataHandle.size(), 0);
 
-  vector<pclPtr> allPcl;  // point clouds vector
+  vector<pclPtr> allPcl; // point clouds vector
   pclPtr myPcl(new PCL);
   allPcl.assign(laserDataHandle.size(), myPcl);
 
-  pclPtr unavArea_clean(new PCL);  // point clouds initialization
+  pclPtr unavArea_clean(new PCL); // point clouds initialization
   pclPtr unavAreaL(new PCL);
   pclPtr unavAreaL_t(new PCL);
   pclPtr unavAreaD(new PCL);
@@ -1205,11 +1230,11 @@ int main(int argc, char **argv)
   if (includeUnav)
   {
     int pointsSize = 500;
-    unavAreaL->width = pointsSize;  // left unnavigable area
+    unavAreaL->width = pointsSize; // left unnavigable area
     unavAreaL->height = 1;
     unavAreaL->points.resize(unavAreaL->width * unavAreaL->height);
 
-    unavAreaD->width = pointsSize;  // right unnavigable area
+    unavAreaD->width = pointsSize; // right unnavigable area
     unavAreaD->height = 1;
     unavAreaD->points.resize(unavAreaL->width * unavAreaL->height);
 
@@ -1220,7 +1245,7 @@ int main(int argc, char **argv)
     {
       double x = radius * cos(angle[i]);
       double y = radius * sin(angle[i]);
-      if (y > 3.95)  // crops the turning circle
+      if (y > 3.95) // crops the turning circle
       {
         y = 3.95;
       }
@@ -1237,10 +1262,13 @@ int main(int argc, char **argv)
     pcl::copyPointCloud(*unavAreaD, *unavAreaD_t);
 
     laserDataAnalise::transformPCL(getTf(-1.5, -(0.65 + radius), 0, 0, 0, 0),
-                                   unavAreaL_t);  // translation the unnavigable area to the correct position
-    laserDataAnalise::transformPCL(getTf(-1.5, 0.65 + radius, 0, 0, 0, 0), unavAreaD_t);
+                                   unavAreaL_t); // translation the unnavigable
+                                                 // area to the correct position
+    laserDataAnalise::transformPCL(getTf(-1.5, 0.65 + radius, 0, 0, 0, 0),
+                                   unavAreaD_t);
 
-    pclPtr unavArea(new PCL);  // assigns cinematics constrictions to the global unnavigable point cloud
+    pclPtr unavArea(new PCL); // assigns cinematics constrictions to the global
+                              // unnavigable point cloud
     *unavArea += *unavAreaD_t;
     *unavArea += *unavAreaL_t;
 
@@ -1258,7 +1286,7 @@ int main(int argc, char **argv)
     pclPtr unavAreaL_sorted(new PCL);
     euDistSort2(unavAreaL_t, unavAreaL_sorted);
 
-    vector<double> side = linspace(0.2, -3.275, 100);  // car point cloud
+    vector<double> side = linspace(0.2, -3.275, 100); // car point cloud
     vector<double> front = linspace(-0.85, 0.85, 50);
 
     car->width = 100 * 2 + 50 * 2;
@@ -1303,17 +1331,21 @@ int main(int argc, char **argv)
   ocupGrid ocGrid("/map", xMin, xMax, yMin, yMax, cellResolution);
 
   ocGrid.populateMap(unavAreaL, RED, -1.55,
-                     -5.15);  // convert point cloud to ocupational grid for left unnavigable space
+                     -5.15); // convert point cloud to ocupational grid for left
+                             // unnavigable space
   ocGrid.populateMap(unavAreaD, RED, -1.55,
-                     5.15);        // convert point cloud to ocupational grid for right unnavigable space
-  ocGrid.populateMap(car, WHITE);  // convert point cloud to ocupational grid for car space
+                     5.15); // convert point cloud to ocupational grid for right
+                            // unnavigable space
+  ocGrid.populateMap(
+      car, WHITE); // convert point cloud to ocupational grid for car space
   ocGrid.setValue(RED, -1.5, -5.15, false);
   ocGrid.setValue(RED, -1.5, 5.15, false);
 
   vector<signed char> map = ocGrid.getGrid();
 
   Rate loopRate(50);
-  while (ros::ok())  // recieve point clouds and concatenates in the laserDataHandle vector
+  while (ros::ok()) // recieve point clouds and concatenates in the
+                    // laserDataHandle vector
   {
     for (int i = 0; i < laserDataHandle.size(); i++)
     {
@@ -1339,7 +1371,8 @@ int main(int argc, char **argv)
     pclPtr mergedPcl(new PCL);
     pclPtr mergedPcl_clean(new PCL);
 
-    int arr[] = { -1.6, -0.8, 0.8, 1.6 };  // filtering 4 scans to remove the ground
+    double arr[] = {-1.6, -0.8, 0.8,
+                    1.6}; // filtering 4 scans to remove the ground
     vector<double> angles(arr, arr + 4);
     //    angles.insert(angles.end(), { 1, 2, 3, 4, 5, 6 });
     for (int i = 2; i < 6; i++)
@@ -1375,10 +1408,13 @@ int main(int argc, char **argv)
       PCL2 mergedPcl2;
       pcl::toROSMsg(*unavArea_clean, mergedPcl2);
       mergedPcl2.header.frame_id = "/map";
-      uNavPclPub.publish(mergedPcl2);  // publisher for the LIDAR's unnavigable point cloud
+      uNavPclPub.publish(
+          mergedPcl2); // publisher for the LIDAR's unnavigable point cloud
 
-      polygonSPtr polygonD = laserDataAnalise::getScanPolygon(unavAreaD_t, "/map");
-      polygonSPtr polygonL = laserDataAnalise::getScanPolygon(unavAreaL_t, "/map");
+      polygonSPtr polygonD =
+          laserDataAnalise::getScanPolygon(unavAreaD_t, "/map");
+      polygonSPtr polygonL =
+          laserDataAnalise::getScanPolygon(unavAreaL_t, "/map");
 
       /*---Publisher for the left and right Polygon---*/
       uNavRPolygonPub.publish(*polygonD);
@@ -1391,15 +1427,20 @@ int main(int argc, char **argv)
       sortPcl(mergedPcl, mergedPcl_sorted);
 
       // Build the condition
-      pcl::ConditionOr<pcl::PointXYZ>::Ptr range_and1(new pcl::ConditionOr<pcl::PointXYZ>());
+      pcl::ConditionOr<pcl::PointXYZ>::Ptr range_and1(
+          new pcl::ConditionOr<pcl::PointXYZ>());
       range_and1->addComparison(pcl::FieldComparison<pcl::PointXYZ>::Ptr(
-          new pcl::FieldComparison<pcl::PointXYZ>("y", pcl::ComparisonOps::GT, 0.9)));
+          new pcl::FieldComparison<pcl::PointXYZ>("y", pcl::ComparisonOps::GT,
+                                                  0.9)));
       range_and1->addComparison(pcl::FieldComparison<pcl::PointXYZ>::Ptr(
-          new pcl::FieldComparison<pcl::PointXYZ>("y", pcl::ComparisonOps::LT, -0.9)));
+          new pcl::FieldComparison<pcl::PointXYZ>("y", pcl::ComparisonOps::LT,
+                                                  -0.9)));
       range_and1->addComparison(pcl::FieldComparison<pcl::PointXYZ>::Ptr(
-          new pcl::FieldComparison<pcl::PointXYZ>("x", pcl::ComparisonOps::LT, -3.5)));
+          new pcl::FieldComparison<pcl::PointXYZ>("x", pcl::ComparisonOps::LT,
+                                                  -3.5)));
       range_and1->addComparison(pcl::FieldComparison<pcl::PointXYZ>::Ptr(
-          new pcl::FieldComparison<pcl::PointXYZ>("x", pcl::ComparisonOps::GT, 0.2)));
+          new pcl::FieldComparison<pcl::PointXYZ>("x", pcl::ComparisonOps::GT,
+                                                  0.2)));
 
       pclPtr mergedPcl_filtered(new PCL);
       // Build the filter
@@ -1408,7 +1449,8 @@ int main(int argc, char **argv)
       condrem.setInputCloud(mergedPcl_sorted);
       condrem.filter(*mergedPcl_filtered);
 
-      azimuteFilter(mergedPcl_filtered, mergedPcl_clean, true);  // sort points by azimute
+      azimuteFilter(mergedPcl_filtered, mergedPcl_clean,
+                    true); // sort points by azimute
     }
 
     if (mergedPcl_clean->points.size() > 0)
@@ -1449,7 +1491,8 @@ int main(int argc, char **argv)
       reducedPclPub.publish(reducedPcl2);
 
       /*---Publisher for the LIDAR's Polygon---*/
-      polygonSPtr polygon = laserDataAnalise::getScanPolygon(mergedPcl_reduced, "/map");
+      polygonSPtr polygon =
+          laserDataAnalise::getScanPolygon(mergedPcl_reduced, "/map");
 
       polygonPub.publish(*polygon);
 
@@ -1467,7 +1510,7 @@ int main(int argc, char **argv)
       double originY = yMin;
       ocGrid.updateGrid(originX, originY);
 
-      ocGrid.publish();  // publisher for the ocupation grid
+      ocGrid.publish(); // publisher for the ocupation grid
     }
 
     ros::spinOnce();

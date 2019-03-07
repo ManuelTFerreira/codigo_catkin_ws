@@ -46,9 +46,11 @@
 
 #include <steer_drive_controller/steer_drive_controller.h>
 
-static double euclideanOfVectors(const urdf::Vector3& vec1, const urdf::Vector3& vec2)
+static double euclideanOfVectors(const urdf::Vector3 &vec1,
+                                 const urdf::Vector3 &vec2)
 {
-  return std::sqrt(std::pow(vec1.x - vec2.x, 2) + std::pow(vec1.y - vec2.y, 2) + std::pow(vec1.z - vec2.z, 2));
+  return std::sqrt(std::pow(vec1.x - vec2.x, 2) + std::pow(vec1.y - vec2.y, 2) +
+                   std::pow(vec1.z - vec2.z, 2));
 }
 
 /*
@@ -56,7 +58,7 @@ static double euclideanOfVectors(const urdf::Vector3& vec1, const urdf::Vector3&
  * \param link Link
  * \return true if the link is modeled as a Cylinder; false otherwise
  */
-static bool isCylinder(const boost::shared_ptr<const urdf::Link>& link)
+static bool isCylinder(const std::shared_ptr<const urdf::Link> &link)
 {
   if (!link)
   {
@@ -66,21 +68,25 @@ static bool isCylinder(const boost::shared_ptr<const urdf::Link>& link)
 
   if (!link->collision)
   {
-    ROS_ERROR_STREAM("Link " << link->name << " does not have collision description. Add collision description for "
-                                              "link to urdf.");
+    ROS_ERROR_STREAM("Link " << link->name
+                             << " does not have collision description. Add "
+                                "collision description for link to urdf.");
     return false;
   }
 
   if (!link->collision->geometry)
   {
-    ROS_ERROR_STREAM("Link " << link->name << " does not have collision geometry description. Add collision geometry "
-                                              "description for link to urdf.");
+    ROS_ERROR_STREAM("Link "
+                     << link->name
+                     << " does not have collision geometry description. Add "
+                        "collision geometry description for link to urdf.");
     return false;
   }
 
   if (link->collision->geometry->type != urdf::Geometry::CYLINDER)
   {
-    ROS_ERROR_STREAM("Link " << link->name << " does not have cylinder geometry");
+    ROS_ERROR_STREAM("Link " << link->name
+                             << " does not have cylinder geometry");
     return false;
   }
 
@@ -94,48 +100,45 @@ static bool isCylinder(const boost::shared_ptr<const urdf::Link>& link)
  * \return true if the wheel radius was found; false other
 wise
  */
-static bool getWheelRadius(const boost::shared_ptr<const urdf::Link>& wheel_link, double& wheel_radius)
+static bool
+getWheelRadius(const std::shared_ptr<const urdf::Link> &wheel_link,
+               double &wheel_radius)
 {
   if (!isCylinder(wheel_link))
   {
-    ROS_ERROR_STREAM("Wheel link " << wheel_link->name << " is NOT modeled as a cylinder!");
+    ROS_ERROR_STREAM("Wheel link " << wheel_link->name
+                                   << " is NOT modeled as a cylinder!");
     return false;
   }
 
-  wheel_radius = (static_cast<urdf::Cylinder*>(wheel_link->collision->geometry.get()))->radius;
+  wheel_radius =
+      (static_cast<urdf::Cylinder *>(wheel_link->collision->geometry.get()))
+          ->radius;
   return true;
 }
 
 namespace steer_drive_controller
 {
-SteerDriveController::SteerDriveController()
-  : open_loop_(false)
-  , command_struct_()
-  , wheel_separation_h_(0.0)
-  , wheel_radius_(0.0)
-  , wheel_separation_h_multiplier_(1.0)
-  , wheel_radius_multiplier_(1.0)
-  , steer_pos_multiplier_(1.0)
-  , cmd_vel_timeout_(0.05)
-  , allow_multiple_cmd_vel_publishers_(true)
-  , base_frame_id_("base_link")
-  , odom_frame_id_("odom")
-  , enable_odom_tf_(true)
-  , wheel_joints_size_(0)
-  , ns_("")
-{
-}
 
-bool SteerDriveController::init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& root_nh,
-                                ros::NodeHandle& controller_nh)
+SteerDriveController::SteerDriveController()
+    : open_loop_(false), command_struct_(), wheel_separation_h_(0.0),
+      wheel_radius_(0.0), wheel_separation_h_multiplier_(1.0),
+      wheel_radius_multiplier_(1.0), steer_pos_multiplier_(1.0),
+      cmd_vel_timeout_(0.5), allow_multiple_cmd_vel_publishers_(true),
+      base_frame_id_("base_link"), odom_frame_id_("odom"),
+      enable_odom_tf_(true), wheel_joints_size_(0), ns_("") {}
+
+bool SteerDriveController::init(hardware_interface::RobotHW *robot_hw,
+                                ros::NodeHandle &root_nh,
+                                ros::NodeHandle &controller_nh)
 {
   typedef hardware_interface::VelocityJointInterface VelIface;
   typedef hardware_interface::PositionJointInterface PosIface;
   typedef hardware_interface::JointStateInterface StateIface;
 
   // get multiple types of hardware_interface
-  VelIface* vel_joint_if = robot_hw->get<VelIface>();  // vel for wheels
-  PosIface* pos_joint_if = robot_hw->get<PosIface>();  // pos for steers
+  VelIface *vel_joint_if = robot_hw->get<VelIface>(); // vel for wheels
+  PosIface *pos_joint_if = robot_hw->get<PosIface>(); // pos for steers
 
   const std::string complete_ns = controller_nh.getNamespace();
 
@@ -153,37 +156,51 @@ bool SteerDriveController::init(hardware_interface::RobotHW* robot_hw, ros::Node
   // Odometry related:
   double publish_rate;
   controller_nh.param("publish_rate", publish_rate, 50.0);
-  ROS_INFO_STREAM_NAMED(name_, "Controller state will be published at " << publish_rate << "Hz.");
+  ROS_INFO_STREAM_NAMED(name_, "Controller state will be published at "
+                                   << publish_rate << "Hz.");
   publish_period_ = ros::Duration(1.0 / publish_rate);
 
   controller_nh.param(ns_ + "open_loop", open_loop_, open_loop_);
 
-  controller_nh.param(ns_ + "wheel_separation_h_multiplier", wheel_separation_h_multiplier_,
+  controller_nh.param(ns_ + "wheel_separation_h_multiplier",
+                      wheel_separation_h_multiplier_,
                       wheel_separation_h_multiplier_);
-  ROS_INFO_STREAM_NAMED(name_, "Wheel separation height will be multiplied by " << wheel_separation_h_multiplier_
-                                                                                << ".");
+  ROS_INFO_STREAM_NAMED(name_, "Wheel separation height will be multiplied by "
+                                   << wheel_separation_h_multiplier_ << ".");
 
-  controller_nh.param(ns_ + "wheel_radius_multiplier", wheel_radius_multiplier_, wheel_radius_multiplier_);
-  ROS_INFO_STREAM_NAMED(name_, "Wheel radius will be multiplied by " << wheel_radius_multiplier_ << ".");
+  controller_nh.param(ns_ + "wheel_radius_multiplier", wheel_radius_multiplier_,
+                      wheel_radius_multiplier_);
+  ROS_INFO_STREAM_NAMED(name_, "Wheel radius will be multiplied by "
+                                   << wheel_radius_multiplier_ << ".");
 
-  controller_nh.param(ns_ + "steer_pos_multiplier", steer_pos_multiplier_, steer_pos_multiplier_);
-  ROS_INFO_STREAM_NAMED(name_, "Steer pos will be multiplied by " << steer_pos_multiplier_ << ".");
+  controller_nh.param(ns_ + "steer_pos_multiplier", steer_pos_multiplier_,
+                      steer_pos_multiplier_);
+  ROS_INFO_STREAM_NAMED(name_, "Steer pos will be multiplied by "
+                                   << steer_pos_multiplier_ << ".");
 
   int velocity_rolling_window_size = 10;
-  controller_nh.param(ns_ + "velocity_rolling_window_size", velocity_rolling_window_size, velocity_rolling_window_size);
-  ROS_INFO_STREAM_NAMED(name_, "Velocity rolling window size of " << velocity_rolling_window_size << ".");
+  controller_nh.param(ns_ + "velocity_rolling_window_size",
+                      velocity_rolling_window_size,
+                      velocity_rolling_window_size);
+  ROS_INFO_STREAM_NAMED(name_, "Velocity rolling window size of "
+                                   << velocity_rolling_window_size << ".");
 
   odometry_.setVelocityRollingWindowSize(velocity_rolling_window_size);
 
   // Twist command related:
-  controller_nh.param(ns_ + "cmd_vel_timeout", cmd_vel_timeout_, cmd_vel_timeout_);
-  ROS_INFO_STREAM_NAMED(name_, "Velocity commands will be considered old if they are older than " << cmd_vel_timeout_
-                                                                                                  << "s.");
+  controller_nh.param(ns_ + "cmd_vel_timeout", cmd_vel_timeout_,
+                      cmd_vel_timeout_);
+  ROS_INFO_STREAM_NAMED(
+      name_, "Velocity commands will be considered old if they are older than "
+                 << cmd_vel_timeout_ << "s.");
 
-  controller_nh.param(ns_ + "allow_multiple_cmd_vel_publishers", allow_multiple_cmd_vel_publishers_,
+  controller_nh.param(ns_ + "allow_multiple_cmd_vel_publishers",
+                      allow_multiple_cmd_vel_publishers_,
                       allow_multiple_cmd_vel_publishers_);
-  ROS_INFO_STREAM_NAMED(name_, "Allow mutiple cmd_vel publishers is "
-                                   << (allow_multiple_cmd_vel_publishers_ ? "enabled" : "disabled"));
+  ROS_INFO_STREAM_NAMED(
+      name_,
+      "Allow mutiple cmd_vel publishers is "
+          << (allow_multiple_cmd_vel_publishers_ ? "enabled" : "disabled"));
 
   controller_nh.param(ns_ + "base_frame_id", base_frame_id_, base_frame_id_);
   ROS_INFO_STREAM_NAMED(name_, "Base frame_id set to " << base_frame_id_);
@@ -192,40 +209,68 @@ bool SteerDriveController::init(hardware_interface::RobotHW* robot_hw, ros::Node
   ROS_INFO_STREAM_NAMED(name_, "Odometry frame_id set to " << odom_frame_id_);
 
   controller_nh.param(ns_ + "enable_odom_tf", enable_odom_tf_, enable_odom_tf_);
-  ROS_INFO_STREAM_NAMED(name_, "Publishing to tf is " << (enable_odom_tf_ ? "enabled" : "disabled"));
+  ROS_INFO_STREAM_NAMED(name_,
+                        "Publishing to tf is "
+                            << (enable_odom_tf_ ? "enabled" : "disabled"));
 
   // Velocity and acceleration limits:
-  controller_nh.param(ns_ + "linear/x/has_velocity_limits", limiter_lin_.has_velocity_limits,
+  controller_nh.param(ns_ + "linear/x/has_velocity_limits",
+                      limiter_lin_.has_velocity_limits,
                       limiter_lin_.has_velocity_limits);
-  controller_nh.param(ns_ + "linear/x/has_acceleration_limits", limiter_lin_.has_acceleration_limits,
+  controller_nh.param(ns_ + "linear/x/has_acceleration_limits",
+                      limiter_lin_.has_acceleration_limits,
                       limiter_lin_.has_acceleration_limits);
-  controller_nh.param(ns_ + "linear/x/has_jerk_limits", limiter_lin_.has_jerk_limits, limiter_lin_.has_jerk_limits);
-  controller_nh.param(ns_ + "linear/x/max_velocity", limiter_lin_.max_velocity, limiter_lin_.max_velocity);
-  controller_nh.param(ns_ + "linear/x/min_velocity", limiter_lin_.min_velocity, -limiter_lin_.max_velocity);
-  controller_nh.param(ns_ + "linear/x/max_acceleration", limiter_lin_.max_acceleration, limiter_lin_.max_acceleration);
-  controller_nh.param(ns_ + "linear/x/min_acceleration", limiter_lin_.min_acceleration, -limiter_lin_.max_acceleration);
-  controller_nh.param(ns_ + "linear/x/max_jerk", limiter_lin_.max_jerk, limiter_lin_.max_jerk);
-  controller_nh.param(ns_ + "linear/x/min_jerk", limiter_lin_.min_jerk, -limiter_lin_.max_jerk);
+  controller_nh.param(ns_ + "linear/x/has_jerk_limits",
+                      limiter_lin_.has_jerk_limits,
+                      limiter_lin_.has_jerk_limits);
+  controller_nh.param(ns_ + "linear/x/max_velocity", limiter_lin_.max_velocity,
+                      limiter_lin_.max_velocity);
+  controller_nh.param(ns_ + "linear/x/min_velocity", limiter_lin_.min_velocity,
+                      -limiter_lin_.max_velocity);
+  controller_nh.param(ns_ + "linear/x/max_acceleration",
+                      limiter_lin_.max_acceleration,
+                      limiter_lin_.max_acceleration);
+  controller_nh.param(ns_ + "linear/x/min_acceleration",
+                      limiter_lin_.min_acceleration,
+                      -limiter_lin_.max_acceleration);
+  controller_nh.param(ns_ + "linear/x/max_jerk", limiter_lin_.max_jerk,
+                      limiter_lin_.max_jerk);
+  controller_nh.param(ns_ + "linear/x/min_jerk", limiter_lin_.min_jerk,
+                      -limiter_lin_.max_jerk);
 
-  controller_nh.param(ns_ + "angular/z/has_velocity_limits", limiter_ang_.has_velocity_limits,
+  controller_nh.param(ns_ + "angular/z/has_velocity_limits",
+                      limiter_ang_.has_velocity_limits,
                       limiter_ang_.has_velocity_limits);
-  controller_nh.param(ns_ + "angular/z/has_acceleration_limits", limiter_ang_.has_acceleration_limits,
+  controller_nh.param(ns_ + "angular/z/has_acceleration_limits",
+                      limiter_ang_.has_acceleration_limits,
                       limiter_ang_.has_acceleration_limits);
-  controller_nh.param(ns_ + "angular/z/has_jerk_limits", limiter_ang_.has_jerk_limits, limiter_ang_.has_jerk_limits);
-  controller_nh.param(ns_ + "angular/z/max_velocity", limiter_ang_.max_velocity, limiter_ang_.max_velocity);
-  controller_nh.param(ns_ + "angular/z/min_velocity", limiter_ang_.min_velocity, -limiter_ang_.max_velocity);
-  controller_nh.param(ns_ + "angular/z/max_acceleration", limiter_ang_.max_acceleration, limiter_ang_.max_acceleration);
-  controller_nh.param(ns_ + "angular/z/min_acceleration", limiter_ang_.min_acceleration,
+  controller_nh.param(ns_ + "angular/z/has_jerk_limits",
+                      limiter_ang_.has_jerk_limits,
+                      limiter_ang_.has_jerk_limits);
+  controller_nh.param(ns_ + "angular/z/max_velocity", limiter_ang_.max_velocity,
+                      limiter_ang_.max_velocity);
+  controller_nh.param(ns_ + "angular/z/min_velocity", limiter_ang_.min_velocity,
+                      -limiter_ang_.max_velocity);
+  controller_nh.param(ns_ + "angular/z/max_acceleration",
+                      limiter_ang_.max_acceleration,
+                      limiter_ang_.max_acceleration);
+  controller_nh.param(ns_ + "angular/z/min_acceleration",
+                      limiter_ang_.min_acceleration,
                       -limiter_ang_.max_acceleration);
-  controller_nh.param(ns_ + "angular/z/max_jerk", limiter_ang_.max_jerk, limiter_ang_.max_jerk);
-  controller_nh.param(ns_ + "angular/z/min_jerk", limiter_ang_.min_jerk, -limiter_ang_.max_jerk);
+  controller_nh.param(ns_ + "angular/z/max_jerk", limiter_ang_.max_jerk,
+                      limiter_ang_.max_jerk);
+  controller_nh.param(ns_ + "angular/z/min_jerk", limiter_ang_.min_jerk,
+                      -limiter_ang_.max_jerk);
 
-  // If either parameter is not available, we need to look up the value in the URDF
-  bool lookup_wheel_separation_h = !controller_nh.getParam(ns_ + "wheel_separation_h", wheel_separation_h_);
-  bool lookup_wheel_radius = !controller_nh.getParam(ns_ + "wheel_radius", wheel_radius_);
+  // If either parameter is not available, we need to look up the value in the
+  // URDF
+  bool lookup_wheel_separation_h =
+      !controller_nh.getParam(ns_ + "wheel_separation_h", wheel_separation_h_);
+  bool lookup_wheel_radius =
+      !controller_nh.getParam(ns_ + "wheel_radius", wheel_radius_);
 
-  if (!setOdomParamsFromUrdf(root_nh, rear_wheel_name, front_steer_name, lookup_wheel_separation_h,
-                             lookup_wheel_radius))
+  if (!setOdomParamsFromUrdf(root_nh, rear_wheel_name, front_steer_name,
+                             lookup_wheel_separation_h, lookup_wheel_radius))
   {
     return false;
   }
@@ -235,25 +280,32 @@ bool SteerDriveController::init(hardware_interface::RobotHW* robot_hw, ros::Node
   const double ws_h = wheel_separation_h_multiplier_ * wheel_separation_h_;
   const double wr = wheel_radius_multiplier_ * wheel_radius_;
   odometry_.setWheelParams(ws_h, wr);
-  ROS_INFO_STREAM_NAMED(name_, "Odometry params : wheel separation height " << ws_h << ", wheel radius " << wr);
+  ROS_INFO_STREAM_NAMED(name_, "Odometry params : wheel separation height "
+                                   << ws_h << ", wheel radius " << wr);
 
   setOdomPubFields(root_nh, controller_nh);
 
   //-- rear wheel
   //---- handles need to be previously registerd in steer_drive_test.cpp
-  ROS_INFO_STREAM_NAMED(name_, "Adding the rear wheel with joint name: " << rear_wheel_name);
-  rear_wheel_joint_ = vel_joint_if->getHandle(rear_wheel_name);  // throws on failure
+  ROS_INFO_STREAM_NAMED(
+      name_, "Adding the rear wheel with joint name: " << rear_wheel_name);
+  rear_wheel_joint_ =
+      vel_joint_if->getHandle(rear_wheel_name); // throws on failure
   //-- front steer
-  ROS_INFO_STREAM_NAMED(name_, "Adding the front steer with joint name: " << front_steer_name);
-  front_steer_joint_ = pos_joint_if->getHandle(front_steer_name);  // throws on failure
+  ROS_INFO_STREAM_NAMED(
+      name_, "Adding the front steer with joint name: " << front_steer_name);
+  front_steer_joint_ =
+      pos_joint_if->getHandle(front_steer_name); // throws on failure
   ROS_INFO_STREAM_NAMED(name_, "Adding the subscriber: cmd_vel");
-  sub_command_ = controller_nh.subscribe("cmd_vel", 1, &SteerDriveController::cmdVelCallback, this);
+  sub_command_ = controller_nh.subscribe(
+      "cmd_vel", 1, &SteerDriveController::cmdVelCallback, this);
   ROS_INFO_STREAM_NAMED(name_, "Finished controller initialization");
 
   return true;
 }
 
-void SteerDriveController::update(const ros::Time& time, const ros::Duration& period)
+void SteerDriveController::update(const ros::Time &time,
+                                  const ros::Duration &period)
 {
   // COMPUTE AND PUBLISH ODOMETRY
   if (open_loop_)
@@ -278,7 +330,8 @@ void SteerDriveController::update(const ros::Time& time, const ros::Duration& pe
   {
     last_state_publish_time_ += publish_period_;
     // Compute and store orientation info
-    const geometry_msgs::Quaternion orientation(tf::createQuaternionMsgFromYaw(odometry_.getHeading()));
+    const geometry_msgs::Quaternion orientation(
+        tf::createQuaternionMsgFromYaw(odometry_.getHeading()));
 
     // Populate odom message and publish
     if (odom_pub_->trylock())
@@ -295,7 +348,8 @@ void SteerDriveController::update(const ros::Time& time, const ros::Duration& pe
     // Publish tf /odom frame
     if (enable_odom_tf_ && tf_odom_pub_->trylock())
     {
-      geometry_msgs::TransformStamped& odom_frame = tf_odom_pub_->msg_.transforms[0];
+      geometry_msgs::TransformStamped &odom_frame =
+          tf_odom_pub_->msg_.transforms[0];
       odom_frame.header.stamp = time;
       odom_frame.transform.translation.x = odometry_.getX();
       odom_frame.transform.translation.y = odometry_.getY();
@@ -326,12 +380,13 @@ void SteerDriveController::update(const ros::Time& time, const ros::Duration& pe
   last0_cmd_ = curr_cmd;
 
   // Set Command
-  const double wheel_vel = curr_cmd.lin / wheel_radius_;  // omega = linear_vel / radius
+  const double wheel_vel =
+      curr_cmd.lin / wheel_radius_; // omega = linear_vel / radius
   rear_wheel_joint_.setCommand(wheel_vel);
   front_steer_joint_.setCommand(curr_cmd.ang);
 }
 
-void SteerDriveController::starting(const ros::Time& time)
+void SteerDriveController::starting(const ros::Time &time)
 {
   brake();
 
@@ -341,10 +396,7 @@ void SteerDriveController::starting(const ros::Time& time)
   odometry_.init(time);
 }
 
-void SteerDriveController::stopping(const ros::Time& /*time*/)
-{
-  brake();
-}
+void SteerDriveController::stopping(const ros::Time & /*time*/) { brake(); }
 
 void SteerDriveController::brake()
 {
@@ -355,16 +407,19 @@ void SteerDriveController::brake()
   front_steer_joint_.setCommand(wheel_vel);
 }
 
-void SteerDriveController::cmdVelCallback(const geometry_msgs::Twist& command)
+void SteerDriveController::cmdVelCallback(const geometry_msgs::Twist &command)
 {
   if (isRunning())
   {
     // check that we don't have multiple publishers on the command topic
-    if (!allow_multiple_cmd_vel_publishers_ && sub_command_.getNumPublishers() > 1)
+    if (!allow_multiple_cmd_vel_publishers_ &&
+        sub_command_.getNumPublishers() > 1)
     {
-      ROS_ERROR_STREAM_THROTTLE_NAMED(1.0, name_, "Detected "
-                                                      << sub_command_.getNumPublishers()
-                                                      << " publishers. Only 1 publisher is allowed. Going to brake.");
+      ROS_ERROR_STREAM_THROTTLE_NAMED(
+          1.0, name_,
+          "Detected "
+              << sub_command_.getNumPublishers()
+              << " publishers. Only 1 publisher is allowed. Going to brake.");
       brake();
       return;
     }
@@ -380,17 +435,20 @@ void SteerDriveController::cmdVelCallback(const geometry_msgs::Twist& command)
   }
   else
   {
-    ROS_ERROR_NAMED(name_, "Can't accept new commands. Controller is not running.");
+    ROS_ERROR_NAMED(name_,
+                    "Can't accept new commands. Controller is not running.");
   }
 }
 
-bool SteerDriveController::setOdomParamsFromUrdf(ros::NodeHandle& root_nh, const std::string rear_wheel_name,
-                                                 const std::string front_steer_name, bool lookup_wheel_separation_h,
-                                                 bool lookup_wheel_radius)
+bool SteerDriveController::setOdomParamsFromUrdf(
+    ros::NodeHandle &root_nh, const std::string rear_wheel_name,
+    const std::string front_steer_name, bool lookup_wheel_separation_h,
+    bool lookup_wheel_radius)
 {
   if (!(lookup_wheel_separation_h || lookup_wheel_radius))
   {
-    // Short-circuit in case we don't need to look up anything, so we don't have to parse the URDF
+    // Short-circuit in case we don't need to look up anything, so we don't have
+    // to parse the URDF
     return true;
   }
 
@@ -400,40 +458,53 @@ bool SteerDriveController::setOdomParamsFromUrdf(ros::NodeHandle& root_nh, const
   std::string robot_model_str = "";
   if (!res || !root_nh.getParam(model_param_name, robot_model_str))
   {
-    ROS_ERROR_NAMED(name_, "Robot descripion couldn't be retrieved from param server.");
+    ROS_ERROR_NAMED(
+        name_, "Robot descripion couldn't be retrieved from param server.");
     return false;
   }
 
-  boost::shared_ptr<urdf::ModelInterface> model(urdf::parseURDF(robot_model_str));
+  std::shared_ptr<urdf::ModelInterface> model(urdf::parseURDF(robot_model_str));
 
-  boost::shared_ptr<const urdf::Joint> rear_wheel_joint(model->getJoint(rear_wheel_name));
-  boost::shared_ptr<const urdf::Joint> front_steer_joint(model->getJoint(front_steer_name));
+  std::shared_ptr<const urdf::Joint> rear_wheel_joint(
+      model->getJoint(rear_wheel_name));
+  std::shared_ptr<const urdf::Joint> front_steer_joint(
+      model->getJoint(front_steer_name));
 
   if (lookup_wheel_separation_h)
   {
     // Get wheel separation
     if (!rear_wheel_joint)
     {
-      ROS_ERROR_STREAM_NAMED(name_, rear_wheel_name << " couldn't be retrieved from model description");
+      ROS_ERROR_STREAM_NAMED(
+          name_,
+          rear_wheel_name << " couldn't be retrieved from model description");
       return false;
     }
 
     if (!front_steer_joint)
     {
-      ROS_ERROR_STREAM_NAMED(name_, front_steer_name << " couldn't be retrieved from model description");
+      ROS_ERROR_STREAM_NAMED(
+          name_,
+          front_steer_name << " couldn't be retrieved from model description");
       return false;
     }
 
-    ROS_INFO_STREAM("rear wheel to origin: " << rear_wheel_joint->parent_to_joint_origin_transform.position.x << ","
-                                             << rear_wheel_joint->parent_to_joint_origin_transform.position.y << ", "
-                                             << rear_wheel_joint->parent_to_joint_origin_transform.position.z);
+    ROS_INFO_STREAM(
+        "rear wheel to origin: "
+        << rear_wheel_joint->parent_to_joint_origin_transform.position.x << ","
+        << rear_wheel_joint->parent_to_joint_origin_transform.position.y << ", "
+        << rear_wheel_joint->parent_to_joint_origin_transform.position.z);
 
-    ROS_INFO_STREAM("front steer to origin: " << front_steer_joint->parent_to_joint_origin_transform.position.x << ","
-                                              << front_steer_joint->parent_to_joint_origin_transform.position.y << ", "
-                                              << front_steer_joint->parent_to_joint_origin_transform.position.z);
+    ROS_INFO_STREAM(
+        "front steer to origin: "
+        << front_steer_joint->parent_to_joint_origin_transform.position.x << ","
+        << front_steer_joint->parent_to_joint_origin_transform.position.y
+        << ", "
+        << front_steer_joint->parent_to_joint_origin_transform.position.z);
 
-    wheel_separation_h_ = fabs(rear_wheel_joint->parent_to_joint_origin_transform.position.x -
-                               front_steer_joint->parent_to_joint_origin_transform.position.x);
+    wheel_separation_h_ =
+        fabs(rear_wheel_joint->parent_to_joint_origin_transform.position.x -
+             front_steer_joint->parent_to_joint_origin_transform.position.x);
 
     ROS_INFO_STREAM("Calculated wheel_separation_h: " << wheel_separation_h_);
   }
@@ -441,9 +512,11 @@ bool SteerDriveController::setOdomParamsFromUrdf(ros::NodeHandle& root_nh, const
   if (lookup_wheel_radius)
   {
     // Get wheel radius
-    if (!getWheelRadius(model->getLink(rear_wheel_joint->child_link_name), wheel_radius_))
+    if (!getWheelRadius(model->getLink(rear_wheel_joint->child_link_name),
+                        wheel_radius_))
     {
-      ROS_ERROR_STREAM_NAMED(name_, "Couldn't retrieve " << rear_wheel_name << " wheel radius");
+      ROS_ERROR_STREAM_NAMED(name_, "Couldn't retrieve " << rear_wheel_name
+                                                         << " wheel radius");
       return false;
     }
     ROS_INFO_STREAM("Retrieved wheel_radius: " << wheel_radius_);
@@ -452,7 +525,8 @@ bool SteerDriveController::setOdomParamsFromUrdf(ros::NodeHandle& root_nh, const
   return true;
 }
 
-void SteerDriveController::setOdomPubFields(ros::NodeHandle& root_nh, ros::NodeHandle& controller_nh)
+void SteerDriveController::setOdomPubFields(ros::NodeHandle &root_nh,
+                                            ros::NodeHandle &controller_nh)
 {
   // Get and check params for covariances
   XmlRpc::XmlRpcValue pose_cov_list;
@@ -470,27 +544,35 @@ void SteerDriveController::setOdomPubFields(ros::NodeHandle& root_nh, ros::NodeH
     ROS_ASSERT(twist_cov_list[i].getType() == XmlRpc::XmlRpcValue::TypeDouble);
 
   // Setup odometry realtime publisher + odom message constant fields
-  odom_pub_.reset(new realtime_tools::RealtimePublisher<nav_msgs::Odometry>(controller_nh, ns_ + "odom", 100));
+  odom_pub_.reset(new realtime_tools::RealtimePublisher<nav_msgs::Odometry>(
+      controller_nh, ns_ + "odom", 100));
   odom_pub_->msg_.header.frame_id = odom_frame_id_;
   odom_pub_->msg_.child_frame_id = base_frame_id_;
   odom_pub_->msg_.pose.pose.position.z = 0;
-  odom_pub_->msg_.pose.covariance = boost::assign::list_of(static_cast<double>(pose_cov_list[0]))(0)(0)(0)(0)(0)(0)(
-      static_cast<double>(pose_cov_list[1]))(0)(0)(0)(0)(0)(0)(static_cast<double>(pose_cov_list[2]))(0)(0)(0)(0)(0)(0)(
-      static_cast<double>(pose_cov_list[3]))(0)(0)(0)(0)(0)(0)(static_cast<double>(pose_cov_list[4]))(0)(0)(0)(0)(0)(0)(
-      static_cast<double>(pose_cov_list[5]));
+  odom_pub_->msg_.pose.covariance =
+      boost::assign::list_of(static_cast<double>(pose_cov_list[0]))(0)(0)(0)(0)(
+          0)(0)(static_cast<double>(pose_cov_list[1]))(0)(0)(0)(0)(0)(0)(
+          static_cast<double>(pose_cov_list[2]))(0)(0)(0)(0)(0)(0)(
+          static_cast<double>(pose_cov_list[3]))(0)(0)(0)(0)(0)(0)(
+          static_cast<double>(pose_cov_list[4]))(0)(0)(0)(0)(0)(0)(
+          static_cast<double>(pose_cov_list[5]));
   odom_pub_->msg_.twist.twist.linear.y = 0;
   odom_pub_->msg_.twist.twist.linear.z = 0;
   odom_pub_->msg_.twist.twist.angular.x = 0;
   odom_pub_->msg_.twist.twist.angular.y = 0;
-  odom_pub_->msg_.twist.covariance = boost::assign::list_of(static_cast<double>(twist_cov_list[0]))(0)(0)(0)(0)(0)(0)(
-      static_cast<double>(twist_cov_list[1]))(0)(0)(0)(0)(0)(0)(static_cast<double>(twist_cov_list[2]))(0)(0)(0)(0)(0)(
-      0)(static_cast<double>(twist_cov_list[3]))(0)(0)(0)(0)(0)(0)(static_cast<double>(twist_cov_list[4]))(0)(0)(0)(0)(
-      0)(0)(static_cast<double>(twist_cov_list[5]));
-  tf_odom_pub_.reset(new realtime_tools::RealtimePublisher<tf::tfMessage>(root_nh, "/tf", 100));
+  odom_pub_->msg_.twist.covariance =
+      boost::assign::list_of(static_cast<double>(twist_cov_list[0]))(0)(0)(0)(
+          0)(0)(0)(static_cast<double>(twist_cov_list[1]))(0)(0)(0)(0)(0)(0)(
+          static_cast<double>(twist_cov_list[2]))(0)(0)(0)(0)(0)(0)(
+          static_cast<double>(twist_cov_list[3]))(0)(0)(0)(0)(0)(0)(
+          static_cast<double>(twist_cov_list[4]))(0)(0)(0)(0)(0)(0)(
+          static_cast<double>(twist_cov_list[5]));
+  tf_odom_pub_.reset(new realtime_tools::RealtimePublisher<tf::tfMessage>(
+      root_nh, "/tf", 100));
   tf_odom_pub_->msg_.transforms.resize(1);
   tf_odom_pub_->msg_.transforms[0].transform.translation.z = 0.0;
   tf_odom_pub_->msg_.transforms[0].child_frame_id = base_frame_id_;
   tf_odom_pub_->msg_.transforms[0].header.frame_id = odom_frame_id_;
 }
 
-}  // namespace steer_drive_controller
+} // namespace steer_drive_controller

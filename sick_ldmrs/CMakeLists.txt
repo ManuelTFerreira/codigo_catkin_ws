@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   dynamic_reconfigure
   driver_base 
+  message_generation
 )
 
 catkin_python_setup()

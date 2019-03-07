@@ -256,9 +256,9 @@ private:
     pg_.setDesiredCamera((uint32_t)serial);
 
     // Get GigE camera parameters:
-    pnh.param<int>("packet_size", packet_size_,  512); //1400 
-    pnh.param<bool>("auto_packet_size", auto_packet_size_, true); // true
-    pnh.param<int>("packet_delay", packet_delay_, 6250); //4000
+    pnh.param<int>("packet_size", packet_size_, 1400);
+    pnh.param<bool>("auto_packet_size", auto_packet_size_, true);
+    pnh.param<int>("packet_delay", packet_delay_, 4000);
 
     // Set GigE parameters:
     pg_.setGigEParameters(auto_packet_size_, packet_size_, packet_delay_);
@@ -523,6 +523,10 @@ private:
           {
             NODELET_WARN("%s", e.what());
           }
+          catch(CameraImageConsistencyError& e)
+          {
+            NODELET_WARN("%s", e.what());
+          }
           catch(std::runtime_error& e)
           {
             NODELET_ERROR("%s", e.what());
@@ -601,5 +605,5 @@ private:
   pointgrey_camera_driver::PointGreyConfig config_;
 };
 
-PLUGINLIB_DECLARE_CLASS(pointgrey_camera_driver, PointGreyCameraNodelet, pointgrey_camera_driver::PointGreyCameraNodelet, nodelet::Nodelet);  // Needed for Nodelet declaration
+PLUGINLIB_EXPORT_CLASS(pointgrey_camera_driver::PointGreyCameraNodelet, nodelet::Nodelet)  // Needed for Nodelet declaration
 }
