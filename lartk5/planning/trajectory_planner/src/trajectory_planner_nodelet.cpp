@@ -52,25 +52,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 bool plan_trajectory = false;
 bool have_plan = false;
 bool have_trajectory = false;
-vector<double> last_dir{0, 0, 0, 0, 0};
+vector<double> last_dir{ 0, 0, 0, 0, 0 };
 geometry_msgs::PoseStamped pose_in;
 geometry_msgs::PoseStamped pose_transformed;
 
 std::vector<pcl::PointCloud<pcl::PointXYZ>> pc_v;
 //-------------------------------------------------------------------------------------------//
 std::vector<pcl::PointCloud<pcl::PointXYZ>> pc_v1;
-pcl::PointCloud<pcl::PointXYZ>::Ptr
-    pc_v_ptr(new pcl::PointCloud<pcl::PointXYZ>);
+pcl::PointCloud<pcl::PointXYZ>::Ptr pc_v_ptr(new pcl::PointCloud<pcl::PointXYZ>);
 std::vector<pcl::PointCloud<pcl::PointXYZ>> pc_v2;
-pcl::PointCloud<pcl::PointXYZ>::Ptr
-    pc_v_ptrl(new pcl::PointCloud<pcl::PointXYZ>);
+pcl::PointCloud<pcl::PointXYZ>::Ptr pc_v_ptrl(new pcl::PointCloud<pcl::PointXYZ>);
 
 /**
  * @brief Set attractor point coordinates
  * @param trajectory_planner::coordinates msg
  * @return void
  */
-void set_coordinates(trajectory_planner::coordinates msg) {
+void set_coordinates(trajectory_planner::coordinates msg)
+{
   // 	cout<<"stat Message received!!!"<<endl;
   // Change parameters
   pose_in.pose.position.x = msg.x;
@@ -91,14 +90,16 @@ void set_coordinates(trajectory_planner::coordinates msg) {
  * @param mtt::TargetListPC msg
  * @return void
  */
-void mtt_callback(mtt::TargetListPC msg) {
+void mtt_callback(mtt::TargetListPC msg)
+{
   // ROS_INFO("received mtt num obs=%ld num lines first obs =%d frame_id=%s",
   // msg.id.size(), msg.obstacle_lines[0].width,
   //  msg.header.frame_id.c_str());
 
   // copy to global variable
   pc_v.erase(pc_v.begin(), pc_v.end());
-  for (size_t i = 0; i < msg.id.size(); ++i) {
+  for (size_t i = 0; i < msg.id.size(); ++i)
+  {
     pcl::PointCloud<pcl::PointXYZ> tmp;
     pcl::fromROSMsg(msg.obstacle_lines[i], tmp);
     tmp.header.frame_id = msg.header.frame_id;
@@ -114,8 +115,8 @@ void mtt_callback(mtt::TargetListPC msg) {
  * @param mtt::TargetListPC msg
  * @return void
  */
-void pcl_callback(
-    const boost::shared_ptr<const sensor_msgs::PointCloud2> &input) {
+void pcl_callback(const boost::shared_ptr<const sensor_msgs::PointCloud2> &input)
+{
   pcl::PCLPointCloud2 pcl_pc2;
   pcl_conversions::toPCL(*input, pcl_pc2);
   pcl::fromPCLPointCloud2(pcl_pc2, *pc_v_ptr);
@@ -131,8 +132,8 @@ void pcl_callback(
  * @param mtt::TargetListPC msg
  * @return void
  */
-void line_callback(
-    const boost::shared_ptr<const sensor_msgs::PointCloud2> &input) {
+void line_callback(const boost::shared_ptr<const sensor_msgs::PointCloud2> &input)
+{
   pcl::PCLPointCloud2 pcl_pc2;
   pcl_conversions::toPCL(*input, pcl_pc2);
   pcl::fromPCLPointCloud2(pcl_pc2, *pc_v_ptrl);
@@ -149,29 +150,38 @@ void line_callback(
  * @param vehicle speed
  * @return void
  */
-void velocity_callback(double speed) {
+void velocity_callback(double speed)
+{
   double max_dist = pow(speed * 3.6, 2) / 100;
-  if (max_dist > 20) {
+  if (max_dist > 20)
+  {
     max_dist = 20;
   }
-  if (max_dist < 4.5) {
+  if (max_dist < 4.5)
+  {
     max_dist = 4.5;
   }
 
   double i = 0.00000001;
-  while (i < _MAX_STEERING_ANGLE_) {
-    if (i == 0.00000001) {
+  while (i < _MAX_STEERING_ANGLE_)
+  {
+    if (i == 0.00000001)
+    {
       vector<double> v_a;
       vector<double> v_arc;
-      for (int j = 0; j < _NUM_NODES_; ++j) {
+      for (int j = 0; j < _NUM_NODES_; ++j)
+      {
         v_a.push_back(M_PI / 180. * i);
         v_arc.push_back(max_dist / _NUM_NODES_);
       }
       manage_vt->create_new_trajectory(v_a, v_arc, v_a);
-    } else {
+    }
+    else
+    {
       vector<double> v_a1;
       vector<double> v_arc1;
-      for (int j = 0; j < _NUM_NODES_; ++j) {
+      for (int j = 0; j < _NUM_NODES_; ++j)
+      {
         v_a1.push_back(M_PI / 180. * i);
         v_arc1.push_back(max_dist / _NUM_NODES_);
       }
@@ -179,7 +189,8 @@ void velocity_callback(double speed) {
 
       vector<double> v_a2;
       vector<double> v_arc2;
-      for (int j = 0; j < _NUM_NODES_; ++j) {
+      for (int j = 0; j < _NUM_NODES_; ++j)
+      {
         v_a2.push_back(M_PI / 180. * (-i));
         v_arc2.push_back(max_dist / _NUM_NODES_);
       }
@@ -195,31 +206,40 @@ void velocity_callback(double speed) {
  * @param vehicle speed
  * @return void
  */
-void velocity_update_callback(double speed) {
+void velocity_update_callback(double speed)
+{
   double max_dist = pow(speed * 3.6, 2) / 100;
-  if (max_dist > 20) {
+  if (max_dist > 20)
+  {
     max_dist = 20;
   }
-  if (max_dist < 4.5) {
+  if (max_dist < 4.5)
+  {
     max_dist = 4.5;
   }
 
   double i = 0.00000001;
   int num_traj = 0;
-  while (i < _MAX_STEERING_ANGLE_) {
-    if (i == 0.00000001) {
+  while (i < _MAX_STEERING_ANGLE_)
+  {
+    if (i == 0.00000001)
+    {
       vector<double> v_a;
       vector<double> v_arc;
-      for (int j = 0; j < _NUM_NODES_; ++j) {
+      for (int j = 0; j < _NUM_NODES_; ++j)
+      {
         v_a.push_back(M_PI / 180. * i);
         v_arc.push_back(max_dist / _NUM_NODES_);
       }
       manage_vt->update_trajectory(v_a, v_arc, v_a, num_traj);
       num_traj = num_traj + 1;
-    } else {
+    }
+    else
+    {
       vector<double> v_a1;
       vector<double> v_arc1;
-      for (int j = 0; j < _NUM_NODES_; ++j) {
+      for (int j = 0; j < _NUM_NODES_; ++j)
+      {
         v_a1.push_back(M_PI / 180. * i);
         v_arc1.push_back(max_dist / _NUM_NODES_);
       }
@@ -228,7 +248,8 @@ void velocity_update_callback(double speed) {
 
       vector<double> v_a2;
       vector<double> v_arc2;
-      for (int j = 0; j < _NUM_NODES_; ++j) {
+      for (int j = 0; j < _NUM_NODES_; ++j)
+      {
         v_a2.push_back(M_PI / 180. * (-i));
         v_arc2.push_back(max_dist / _NUM_NODES_);
       }
@@ -245,9 +266,9 @@ void velocity_update_callback(double speed) {
  * @param chosen trajectory angle
  * @return speed
  */
-double angle_to_speed(double angle) {
-  double m = (_SPEED_SAFFETY_ - _SPEED_REQUIRED_) /
-             (_MAX_STEERING_ANGLE_ * M_PI / 180);
+double angle_to_speed(double angle)
+{
+  double m = (_SPEED_SAFFETY_ - _SPEED_REQUIRED_) / (_MAX_STEERING_ANGLE_ * M_PI / 180);
   return (m * abs(angle) + _SPEED_REQUIRED_);
   // plan_trajectory = true;
 }
@@ -257,12 +278,14 @@ double angle_to_speed(double angle) {
  * @param last chosen direction
  * @return mean
  */
-double compute_last_dir(double angle) {
+double compute_last_dir(double angle)
+{
   int n = last_dir.size();
   vector<double> last_dir_cp = last_dir;
   last_dir.clear();
 
-  for (size_t i = 1; i < n; i++) {
+  for (size_t i = 1; i < n; i++)
+  {
     last_dir.push_back(last_dir_cp.at(i));
   }
   last_dir.push_back(angle);
@@ -278,18 +301,25 @@ double compute_last_dir(double angle) {
  * @param char **argv
  * @return int
  */
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   ros::init(argc, argv, "trajectory_planner_nodelet");
   ros::NodeHandle n("~");
   p_n = &n;
 
-  if (n.getParam("/sim", _simulation_)) {
-    if (_simulation_) {
+  if (n.getParam("/sim", _simulation_))
+  {
+    if (_simulation_)
+    {
       ROS_INFO("Using Simulation!");
-    } else {
+    }
+    else
+    {
       ROS_INFO("Not using Simulation!");
     }
-  } else {
+  }
+  else
+  {
     ROS_WARN("Param 'sim' not found!");
   }
 
@@ -298,21 +328,19 @@ int main(int argc, char **argv) {
   tf::TransformBroadcaster mtt_broadcaster;
   tf::TransformListener listener;
   p_listener = &listener;
-  ros::Publisher array_pub =
-      n.advertise<visualization_msgs::MarkerArray>("/array_of_markers", 1);
+  ros::Publisher array_pub = n.advertise<visualization_msgs::MarkerArray>("/array_of_markers", 1);
   ros::Subscriber sub = n.subscribe("/msg_coordinates", 1, set_coordinates);
   ros::Subscriber mtt_sub = n.subscribe("/mtt_targets", 1, mtt_callback);
   //----------------------------------------------------------------------------------------------------//
   // Polygon stuff
   ros::Subscriber pcl_sub = n.subscribe("/reduced_pcl", 1000, pcl_callback);
-  ros::Publisher twist_pub =
-      n.advertise<geometry_msgs::Twist>("/steer_drive_controller/cmd_vel", 1);
-  ros::Publisher mindist_pub =
-      n.advertise<std_msgs::Float64MultiArray>("/min_dist_to_obstacles", 1);
+  ros::Publisher twist_pub = n.advertise<geometry_msgs::Twist>("/steer_drive_controller/cmd_vel", 1);
+  ros::Publisher mindist_pub = n.advertise<std_msgs::Float64MultiArray>("/min_dist_to_obstacles", 1);
 
   // road lines
   ros::Subscriber line_sub;
-  if (_simulation_) {
+  if (_simulation_)
+  {
     line_sub = n.subscribe("/line_pcl", 1000, line_callback);
   }
 
@@ -333,9 +361,8 @@ int main(int argc, char **argv) {
   manage_vt->set_attractor_point(AP.x, AP.y, AP.theta);
 
   // initialize vehicle description
-  manage_vt->set_vehicle_description(
-      _VEHICLE_WIDTH_, _VEHICLE_LENGHT_BACK_, _VEHICLE_LENGHT_FRONT_,
-      _VEHICLE_HEIGHT_TOP_, _VEHICLE_HEIGHT_BOTTOM_);
+  manage_vt->set_vehicle_description(_VEHICLE_WIDTH_, _VEHICLE_LENGHT_BACK_, _VEHICLE_LENGHT_FRONT_,
+                                     _VEHICLE_HEIGHT_TOP_, _VEHICLE_HEIGHT_BOTTOM_);
 
   // initialize inter axis distance
   manage_vt->set_inter_axis_distance(_D_);
@@ -344,12 +371,15 @@ int main(int argc, char **argv) {
   velocity_callback(_SPEED_SAFFETY_);
 
   //  trajectory information
-  commandPublisher = n.advertise<trajectory_planner::traj_info>(
-      "/trajectory_information", 1000);
+  commandPublisher = n.advertise<trajectory_planner::traj_info>("/trajectory_information", 1000);
 
   double speed = _SPEED_SAFFETY_;
-  while (ros::ok()) {
-    if (plan_trajectory == true) {
+  while (ros::ok())
+  {
+    // cout << "ros::ok" << endl;
+    if (plan_trajectory == true)
+    {
+      // cout << "plan_trajectory=true" << endl;
       // aqui recebi um comando para defenir uma trajectoria
       have_trajectory = false;
       velocity_update_callback(speed);
@@ -363,23 +393,25 @@ int main(int argc, char **argv) {
       //|_________________________________|
       bool have_transform = true;
       // Set the frame where to draw the trajectories
-      try {
-        p_listener->lookupTransform("/world", "/vehicle_odometry", ros::Time(0),
-                                    transformw);
-      } catch (tf::TransformException ex) {
+      try
+      {
+        p_listener->lookupTransform("/world", "/vehicle_odometry", ros::Time(0), transformw);
+      }
+      catch (tf::TransformException ex)
+      {
         ROS_ERROR("%s", ex.what());
         have_transform = false;
       }
 
-      if (have_transform & have_trajectory) {
+      if (have_transform & have_trajectory)
+      {
+        // cout << "have_transform: " << endl;
         ros::Time time = ros::Time::now();
-        mw_broadcaster.sendTransform(tf::StampedTransform(
-            transformw, time, "/world", "/vehicle_odometry"));
+        mw_broadcaster.sendTransform(tf::StampedTransform(transformw, time, "/world", "/vehicle_odometry"));
         ros::spinOnce();
-        mw_broadcaster.sendTransform(
-            tf::StampedTransform(transformw, time + ros::Duration(5), "/world",
-                                 "/vehicle_"
-                                 "odometry"));
+        mw_broadcaster.sendTransform(tf::StampedTransform(transformw, time + ros::Duration(5), "/world",
+                                                          "/vehicle_"
+                                                          "odometry"));
         ros::spinOnce();
         // 				cout<<"stat Publishing transform"<<endl;
 
@@ -393,8 +425,7 @@ int main(int argc, char **argv) {
         // Transform attractor point to /vehicle_odometry
         tf::Transformer tt;
         pose_in.header.stamp = time + ros::Duration(0.1);
-        p_listener->transformPose("/vehicle_odometry", pose_in,
-                                  pose_transformed);
+        p_listener->transformPose("/vehicle_odometry", pose_in, pose_transformed);
 
         // ROS_INFO("pose_in frame_id=%s pose_transformed frame_id=%s",
         // pose_in.header.frame_id.c_str(),
@@ -402,10 +433,8 @@ int main(int argc, char **argv) {
         // Set transformed attractor point
         manage_vt->set_attractor_point(
             pose_transformed.pose.position.x, pose_transformed.pose.position.y,
-            atan2(2.0 * (pose_transformed.pose.orientation.w *
-                         pose_transformed.pose.orientation.z),
-                  1 - (2 * (pose_transformed.pose.orientation.z *
-                            pose_transformed.pose.orientation.z))));
+            atan2(2.0 * (pose_transformed.pose.orientation.w * pose_transformed.pose.orientation.z),
+                  1 - (2 * (pose_transformed.pose.orientation.z * pose_transformed.pose.orientation.z))));
 
         // transform mtt to /vehicle_odometry
         pcl::PointCloud<pcl::PointXYZ> pct;
@@ -416,19 +445,21 @@ int main(int argc, char **argv) {
 
         //--------------------------------------------------------------------------------------------------------//
         // ROS_INFO("pc_v1 size = %ld", pc_v1.size());
-        for (size_t i = 0; i < pc_v1.size(); ++i) {
-          if (i == 0) {
-            try {
-              p_listener->lookupTransform(pc_v1[i].header.frame_id,
-                                          "/vehicle_odometry", ros::Time(0),
-                                          transform_mtt);
+        for (size_t i = 0; i < pc_v1.size(); ++i)
+        {
+          if (i == 0)
+          {
+            try
+            {
+              p_listener->lookupTransform(pc_v1[i].header.frame_id, "/vehicle_odometry", ros::Time(0), transform_mtt);
               // ROS_INFO("FFFFFFrame_id=%s ",
               // pc_v1[i].header.frame_id.c_str());
-              mtt_broadcaster.sendTransform(tf::StampedTransform(
-                  transform_mtt, time, pc_v1[i].header.frame_id,
-                  "/vehicle_odometry"));
+              mtt_broadcaster.sendTransform(
+                  tf::StampedTransform(transform_mtt, time, pc_v1[i].header.frame_id, "/vehicle_odometry"));
               ros::spinOnce();
-            } catch (tf::TransformException ex) {
+            }
+            catch (tf::TransformException ex)
+            {
               ROS_ERROR("%s", ex.what());
             }
           }
@@ -447,24 +478,26 @@ int main(int argc, char **argv) {
         manage_vt->set_obstacles(msg_transformed);
 
         // road lines
-        if (_simulation_) {
+        if (_simulation_)
+        {
           // ROS_INFO("pc_v2 size = %ld", pc_v2.size());
-          for (size_t i = 0; i < pc_v2.size(); ++i) {
-            if (i == 0) {
-              try {
-                p_listener->lookupTransform(pc_v2[i].header.frame_id,
-                                            "/vehicle_odometry", ros::Time(0),
-                                            transform_mtt);
-                mtt_broadcaster.sendTransform(tf::StampedTransform(
-                    transform_mtt, time, pc_v2[i].header.frame_id,
-                    "/vehicle_odometry"));
+          for (size_t i = 0; i < pc_v2.size(); ++i)
+          {
+            if (i == 0)
+            {
+              try
+              {
+                p_listener->lookupTransform(pc_v2[i].header.frame_id, "/vehicle_odometry", ros::Time(0), transform_mtt);
+                mtt_broadcaster.sendTransform(
+                    tf::StampedTransform(transform_mtt, time, pc_v2[i].header.frame_id, "/vehicle_odometry"));
                 ros::spinOnce();
-              } catch (tf::TransformException ex) {
+              }
+              catch (tf::TransformException ex)
+              {
                 ROS_ERROR("%s", ex.what());
               }
             }
-            pcl_ros::transformPointCloud(pc_v2[i], pct2,
-                                         transform_mtt.inverse());
+            pcl_ros::transformPointCloud(pc_v2[i], pct2, transform_mtt.inverse());
             sensor_msgs::PointCloud2 pc_msg2;
             pcl::toROSMsg(pct2, pc_msg2);
             pc_msg2.header.frame_id = "/vehicle_odometry";
@@ -485,7 +518,8 @@ int main(int argc, char **argv) {
         manage_vt->compute_trajectories_scores();
 
         // change speed in function of steering angle
-        if (manage_vt->chosen_traj.index != -1) {
+        if (manage_vt->chosen_traj.index != -1)
+        {
           speed = angle_to_speed(manage_vt->chosen_traj.alpha);
           // ROS_INFO("speeeeeeeeeeeeed = %f", speed);
         }
@@ -496,16 +530,21 @@ int main(int argc, char **argv) {
         //   |_________________________________|
         geometry_msgs::Twist twist_msg;
 
-        if (manage_vt->chosen_traj.index != -1) {
+        if (manage_vt->chosen_traj.index != -1)
+        {
           // twist_msg.angular.z =
           // compute_last_dir(manage_vt->chosen_traj.alpha);
           twist_msg.angular.z = compute_last_dir(manage_vt->chosen_traj.alpha);
-          if (manage_vt->chosen_traj.score <= 0) {
+          if (manage_vt->chosen_traj.score <= 0)
+          {
             twist_msg.linear.x = 0;
-          } else {
+          }
+          else
+          {
             twist_msg.linear.x = speed;
           }
           twist_pub.publish(twist_msg);
+          // cout << "Message cmd_vel sent" << endl;
         }
 
         //   ___________________________________
@@ -520,12 +559,11 @@ int main(int argc, char **argv) {
         mindist_msg.layout.dim[0].stride = 2;
         mindist_msg.layout.data_offset = 0;
 
-        if (manage_vt->chosen_traj.index != -1) {
-          vector<double> vec1 = {ros::Time::now().toSec(),
-                                 manage_vt->chosen_traj.min_dist};
+        if (manage_vt->chosen_traj.index != -1)
+        {
+          vector<double> vec1 = { ros::Time::now().toSec(), manage_vt->chosen_traj.min_dist };
           mindist_msg.data.clear();
-          mindist_msg.data.insert(mindist_msg.data.end(), vec1.begin(),
-                                  vec1.end());
+          mindist_msg.data.insert(mindist_msg.data.end(), vec1.begin(), vec1.end());
           mindist_pub.publish(mindist_msg);
         }
 
@@ -554,12 +592,12 @@ int main(int argc, char **argv) {
       }
     }
 
-    if (have_plan == true) {
+    if (have_plan == true)
+    {
       // !!!! The previous 'if' must have a weight evaluation !!!!  if ... &&
       // GlobalScore>=0.74
 
-      mw_broadcaster.sendTransform(tf::StampedTransform(
-          transformw, ros::Time::now(), "/world", "/vehicle_odometry"));
+      mw_broadcaster.sendTransform(tf::StampedTransform(transformw, ros::Time::now(), "/world", "/vehicle_odometry"));
       // cout << "stat Publishing transform" << endl;
     }
 
@@ -569,5 +607,5 @@ int main(int argc, char **argv) {
     loop_rate.sleep();
     ros::spinOnce();
   }
-} // main
+}  // main
 #endif
